@@ -1,5 +1,5 @@
 {
-  "name": "testing-app",
+  "name": "test1-app",
   "version": "1.0.0",
   "dependencies": {
     "@vercel/blob": "^0.22.1"
