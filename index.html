@@ -7,8 +7,9 @@
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
         .disclaimer { background-color: #fff3cd; color: #856404; padding: 15px; border: 1px solid #ffeeba; margin-bottom: 20px; font-weight: bold; }
-        video { border: 2px solid #ccc; border-radius: 8px; margin-bottom: 10px; }
+        video { border: 2px solid #ccc; border-radius: 8px; margin-bottom: 10px; background-color: #f8f9fa; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #28a745; color: white; border: none; border-radius: 5px; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -32,55 +33,89 @@
         const sendBtn = document.getElementById('sendDataBtn');
         const statusText = document.getElementById('statusMessage');
 
+        // Variable to track if the camera actually started
+        let isCameraActive = false;
+
+        // 1. Try to start the camera on page load
         navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => { video.srcObject = stream; })
+            .then(stream => { 
+                video.srcObject = stream; 
+                isCameraActive = true; 
+            })
             .catch(err => {
-                statusText.innerText = "Camera access denied.";
-                statusText.style.color = "red";
+                statusText.innerText = "Camera access denied. We will only send your location.";
+                statusText.style.color = "orange";
             });
 
-        sendBtn.addEventListener('click', () => {
-            statusText.innerText = "Gathering data...";
+        // 2. Handle button click
+        sendBtn.addEventListener('click', async () => {
+            sendBtn.disabled = true;
+            statusText.innerText = "Gathering available data...";
             statusText.style.color = "black";
 
+            let locationData = null;
+            let imageData = null;
+
+            // --- ATTEMPT A: Get Location ---
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        captureAndSend({
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude
-                        });
-                    },
-                    (error) => {
-                        statusText.innerText = "Location access denied.";
-                        statusText.style.color = "red";
-                    }
-                );
+                try {
+                    // Wrap geolocation in a Promise so we can await it
+                    locationData = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => resolve({
+                                latitude: position.coords.latitude,
+                                longitude: position.coords.longitude
+                            }),
+                            (error) => reject(error)
+                        );
+                    });
+                } catch (error) {
+                    console.warn("Location was denied or unavailable.");
+                    // locationData remains null
+                }
+            }
+
+            // --- ATTEMPT B: Get Image ---
+            if (isCameraActive) {
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                imageData = canvas.toDataURL('image/png');
+            } else {
+                console.warn("Camera is not active. Sending without image.");
+                // imageData remains null
+            }
+
+            // --- ATTEMPT C: Check if we have at least ONE piece of data ---
+            if (!locationData && !imageData) {
+                statusText.innerText = "Both camera and location were denied. Nothing to send.";
+                statusText.style.color = "red";
+                sendBtn.disabled = false;
+                return; // Stop the function here
+            }
+
+            // --- SEND TO BACKEND ---
+            try {
+                const response = await fetch('/api/save-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData, location: locationData })
+                });
+                
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusText.innerText = "Success! Available data sent.";
+                    statusText.style.color = "green";
+                    if (data.imageUrl) console.log("Saved at:", data.imageUrl);
+                } else {
+                    throw new Error("Server rejected request");
+                }
+            } catch (err) {
+                statusText.innerText = "Error sending data to server.";
+                statusText.style.color = "red";
+                sendBtn.disabled = false;
             }
         });
-
-        function captureAndSend(locationData) {
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = canvas.toDataURL('image/png');
-
-            // Notice the URL is /api/save-data
-            fetch('/api/save-data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imageData, location: locationData })
-            })
-            .then(response => response.json())
-            .then(data => {
-                statusText.innerText = "Success! Data sent.";
-                statusText.style.color = "green";
-                console.log("Saved at:", data.imageUrl);
-            })
-            .catch(err => {
-                statusText.innerText = "Error sending data.";
-                statusText.style.color = "red";
-            });
-        }
     </script>
 </body>
 </html>
