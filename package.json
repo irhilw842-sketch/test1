@@ -1,7 +1,7 @@
 {
-  "name": "test1-app",
+  "name": "restaurant-app",
   "version": "1.0.0",
   "dependencies": {
-    "@vercel/blob": "^0.22.1"
+    "@vercel/blob": "latest"
   }
 }
