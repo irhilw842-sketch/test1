@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
         // 3. Upload to Vercel Blob
         const blob = await put(filename, imageBuffer, {
-            access: 'private',
+            access: 'public',
             contentType: 'image/png'
         });
 
